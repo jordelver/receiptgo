@@ -31,7 +31,7 @@ struct ParkingSession {
     auditlink: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 struct AuthResponse {
     access_token: String,
     token_type: String,
