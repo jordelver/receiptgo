@@ -48,18 +48,24 @@ struct AuthenticationRequest {
     username: String,
 }
 
+impl AuthenticationRequest {
+    pub fn new(username: String, password: String, client_secret: String) -> Self {
+        Self {
+            client_id: RINGGO_CLIENT_ID.to_string(),
+            client_secret: client_secret,
+            grant_type: String::from("password"),
+            username: username,
+            password: password,
+        }
+    }
+}
+
 async fn get_authentication_token(
     username: String,
     password: String,
     client_secret: String,
 ) -> String {
-    let auth_params = AuthenticationRequest {
-        client_id: RINGGO_CLIENT_ID.to_string(),
-        client_secret: client_secret.to_string(),
-        grant_type: String::from("password"),
-        username: username,
-        password: password,
-    };
+    let auth_params = AuthenticationRequest::new(username, password, client_secret);
 
     let client = reqwest::Client::new();
 
