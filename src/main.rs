@@ -18,6 +18,19 @@ pub struct Args {
     pub client_secret: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+struct ParkingSessions {
+    sessions: Vec<ParkingSession>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "PascalCase")]
+struct ParkingSession {
+    #[serde(alias = "id")]
+    auditlink: String,
+}
+
 #[derive(Deserialize, Debug)]
 struct AuthResponse {
     access_token: String,
@@ -48,18 +61,28 @@ async fn get_authentication_token(
         password: password,
     };
 
-    let url = format!(
-        "{api_url}{path}",
-        api_url = RINGGO_API_BASE_URL,
-        path = "/auth/v1/pword"
-    );
-
     let client = reqwest::Client::new();
 
-    let response = client.post(url).form(&auth_params).send().await.unwrap();
+    let response = client.post(login_url()).form(&auth_params).send().await.unwrap();
 
     let auth_response = response.json::<AuthResponse>().await.unwrap();
     auth_response.access_token
+}
+
+fn login_url() -> String {
+    format!(
+        "{api_url}{path}",
+        api_url = RINGGO_API_BASE_URL,
+        path = "/auth/v1/pword"
+    )
+}
+
+fn parking_sessions_url() -> String {
+    format!(
+        "{api_url}{path}",
+        api_url = RINGGO_API_BASE_URL,
+        path = "/user/sessions/receipts/1?CountryCode=GB"
+    )
 }
 
 #[tokio::main]
@@ -69,6 +92,27 @@ async fn main() {
     let access_token =
         get_authentication_token(args.username, args.password, args.client_secret).await;
 
-    println!("{}", access_token);
+    let client = reqwest::Client::new();
+    let response = client
+        .get(parking_sessions_url())
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .unwrap();
 
+    match response.status() {
+        reqwest::StatusCode::OK => {
+            match response.json::<ParkingSessions>().await {
+                Ok(parsed) => println!("Success! {:?}", parsed),
+                Err(_) => println!("Error parsing!"),
+            };
+        }
+        reqwest::StatusCode::UNAUTHORIZED => {
+            println!("Bad token");
+            println!("{:?}", response);
+        }
+        other => {
+            panic!("Unknown error: {:?}", other);
+        }
+    };
 }
