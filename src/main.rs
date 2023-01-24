@@ -1,3 +1,4 @@
+use std::fmt;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 
@@ -75,6 +76,50 @@ async fn get_authentication_token(
     auth_response.access_token
 }
 
+#[derive(Debug)]
+pub enum Error {
+    HttpError,
+    Unauthorized,
+    Unknown,
+}
+
+impl std::error::Error for Error {}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::HttpError => write!(f, "HTTP error"),
+            Error::Unauthorized => write!(f, "Unauthorized"),
+            Error::Unknown => write!(f, "Unknown"),
+        }
+    }
+}
+
+async fn retrieve_parking_sessions(access_token: String) -> Result<Option<ParkingSessions>, Error> {
+    let client = reqwest::Client::new();
+    let response = client
+        .get(parking_sessions_url())
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .unwrap();
+
+    match response.status() {
+        reqwest::StatusCode::OK => {
+            match response.json::<ParkingSessions>().await {
+                Ok(parsed) => Ok(Some(parsed)),
+                Err(_) => panic!("Error parsing JSON"),
+            }
+        }
+        reqwest::StatusCode::UNAUTHORIZED => {
+            Err(Error::Unauthorized)
+        }
+        _ => {
+            Err(Error::Unknown)
+        }
+    }
+}
+
 fn login_url() -> String {
     format!(
         "{api_url}{path}",
@@ -98,27 +143,14 @@ async fn main() {
     let access_token =
         get_authentication_token(args.username, args.password, args.client_secret).await;
 
-    let client = reqwest::Client::new();
-    let response = client
-        .get(parking_sessions_url())
-        .bearer_auth(access_token)
-        .send()
-        .await
-        .unwrap();
+    let parking_sessions = retrieve_parking_sessions(access_token).await.unwrap();
 
-    match response.status() {
-        reqwest::StatusCode::OK => {
-            match response.json::<ParkingSessions>().await {
-                Ok(parsed) => println!("Success! {:?}", parsed),
-                Err(_) => println!("Error parsing!"),
-            };
+    if let Some(ps) = parking_sessions {
+        println!("Parking sessions");
+        for session in ps.sessions.into_iter() {
+            println!("- {}", session.auditlink);
         }
-        reqwest::StatusCode::UNAUTHORIZED => {
-            println!("Bad token");
-            println!("{:?}", response);
-        }
-        other => {
-            panic!("Unknown error: {:?}", other);
-        }
-    };
+    } else {
+        println!("No parking sessions");
+    }
 }
