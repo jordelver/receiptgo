@@ -1,6 +1,7 @@
-use std::fmt;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
+
+use receiptgo::ringgo::errors::Error;
 
 static RINGGO_API_BASE_URL: &str = "https://api-blue.myringgo.co.uk";
 static RINGGO_CLIENT_ID: &str = "ringgoios";
@@ -74,25 +75,6 @@ async fn get_authentication_token(
 
     let auth_response = response.json::<AuthResponse>().await.unwrap();
     auth_response.access_token
-}
-
-#[derive(Debug)]
-pub enum Error {
-    HttpError,
-    Unauthorized,
-    Unknown,
-}
-
-impl std::error::Error for Error {}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::HttpError => write!(f, "HTTP error"),
-            Error::Unauthorized => write!(f, "Unauthorized"),
-            Error::Unknown => write!(f, "Unknown"),
-        }
-    }
 }
 
 async fn retrieve_parking_sessions(access_token: String) -> Result<Option<ParkingSessions>, Error> {
