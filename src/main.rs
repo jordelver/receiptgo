@@ -3,8 +3,8 @@ use std::io::Cursor;
 use serde::{Deserialize, Serialize};
 
 use receiptgo::ringgo::errors::Error;
+use receiptgo::ringgo::url_helpers;
 
-static RINGGO_API_BASE_URL: &str = "https://api-blue.myringgo.co.uk";
 static RINGGO_CLIENT_ID: &str = "ringgoios";
 
 /// Download receipts from RingGo
@@ -95,8 +95,7 @@ async fn get_authentication_token(
     let auth_params = AuthenticationRequest::new(username, password, client_secret);
 
     let client = reqwest::Client::new();
-
-    let response = client.post(login_url()).form(&auth_params).send().await.unwrap();
+    let response = client.post(url_helpers::login_url()).form(&auth_params).send().await.unwrap();
 
     let auth_response = response.json::<AuthResponse>().await.unwrap();
     auth_response.access_token
@@ -105,7 +104,7 @@ async fn get_authentication_token(
 async fn retrieve_parking_sessions(access_token: &str) -> Result<Option<ParkingSessions>, Error> {
     let client = reqwest::Client::new();
     let response = client
-        .get(parking_sessions_url())
+        .get(url_helpers::parking_sessions_url())
         .bearer_auth(access_token)
         .send()
         .await
@@ -131,7 +130,7 @@ async fn request_receipt_pdf_download(access_token: &str, parking_session_id: &s
     let params = DownloadRequest::new(parking_session_id.to_owned());
     let client = reqwest::Client::new();
     let response = client
-        .post(request_download_url())
+        .post(url_helpers::request_download_url())
         .bearer_auth(access_token)
         .json(&params)
         .send()
@@ -159,45 +158,12 @@ type DownloadResult<T> = std::result::Result<T, Box<dyn std::error::Error + Send
 async fn download_receipt_pdf(access_token: &str, parking_session_id: String) -> DownloadResult<()> {
     let download_token = request_receipt_pdf_download(&access_token, &parking_session_id).await.unwrap();
     let file_name = "receipt.pdf";
-    let response = reqwest::get(download_url(&download_token)).await?;
+    let response = reqwest::get(url_helpers::download_url(&download_token)).await?;
     let mut file = std::fs::File::create(file_name)?;
     let mut content = Cursor::new(response.bytes().await?);
     std::io::copy(&mut content, &mut file)?;
 
     Ok(())
-}
-
-fn login_url() -> String {
-    format!(
-        "{api_url}{path}",
-        api_url = RINGGO_API_BASE_URL,
-        path = "/auth/v1/pword"
-    )
-}
-
-fn parking_sessions_url() -> String {
-    format!(
-        "{api_url}{path}",
-        api_url = RINGGO_API_BASE_URL,
-        path = "/user/sessions/receipts/1?CountryCode=GB"
-    )
-}
-
-fn request_download_url() -> String {
-    format!(
-        "{api_url}{path}",
-        api_url = RINGGO_API_BASE_URL,
-        path = "/resource/accesstoken"
-    )
-}
-
-fn download_url(parking_session_id: &str) -> String {
-    format!(
-        "{api_url}{path}{parking_session_id}",
-        api_url = RINGGO_API_BASE_URL,
-        path = "/user/session/receipt/",
-        parking_session_id = parking_session_id,
-    )
 }
 
 #[tokio::main]
