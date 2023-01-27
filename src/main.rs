@@ -55,10 +55,10 @@ impl AuthenticationRequest {
     pub fn new(username: String, password: String, client_secret: String) -> Self {
         Self {
             client_id: RINGGO_CLIENT_ID.to_string(),
-            client_secret: client_secret,
+            client_secret,
             grant_type: String::from("password"),
-            username: username,
-            password: password,
+            username,
+            password,
         }
     }
 }
@@ -73,7 +73,7 @@ struct DownloadRequest {
 impl DownloadRequest {
     pub fn new(identifier: String) -> Self {
         Self {
-            identifier: identifier,
+            identifier,
             resource_type_id: 1,
         }
     }
@@ -156,7 +156,7 @@ async fn request_receipt_pdf_download(access_token: &str, parking_session_id: &s
 type DownloadResult<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 async fn download_receipt_pdf(access_token: &str, parking_session_id: String) -> DownloadResult<()> {
-    let download_token = request_receipt_pdf_download(&access_token, &parking_session_id).await.unwrap();
+    let download_token = request_receipt_pdf_download(access_token, &parking_session_id).await.unwrap();
     let file_name = "receipt.pdf";
     let response = reqwest::get(url_helpers::download_url(&download_token)).await?;
     let mut file = std::fs::File::create(file_name)?;
@@ -180,7 +180,7 @@ async fn main() {
 
         let download_result = download_receipt_pdf(&access_token, first_parking_session.unwrap().auditlink).await;
 
-        if let Ok(_) = download_result {
+        if download_result.is_ok() {
             println!("Downloaded receipt");
         } else {
             println!("Download failed");
