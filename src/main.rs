@@ -7,6 +7,9 @@ use receiptgo::ringgo::url_helpers;
 
 static RINGGO_CLIENT_ID: &str = "ringgoios";
 
+/// Number of receipts to download
+static RECEIPTS_TO_DOWNLOAD: usize = 5;
+
 /// Download receipts from RingGo
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -157,15 +160,18 @@ async fn main() {
     let parking_sessions = retrieve_parking_sessions(&access_token).await.unwrap();
 
     if let Some(ps) = parking_sessions {
-        let first_parking_session = ps.sessions.into_iter().next();
+        for session in ps.sessions.into_iter().take(RECEIPTS_TO_DOWNLOAD) {
+            println!("Downloading {}", session.id);
 
-        let download_result =
-            download_receipt_pdf(&access_token, first_parking_session.unwrap().auditlink).await;
+            let download_result = download_receipt_pdf(&access_token, session.auditlink).await;
 
-        if download_result.is_ok() {
-            println!("Downloaded receipt");
-        } else {
-            println!("Download failed");
+            if download_result.is_ok() {
+                println!("> Downloaded");
+            } else {
+                println!("> Download failed");
+            }
+
+            println!();
         }
     } else {
         println!("No parking sessions");
