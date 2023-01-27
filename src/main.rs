@@ -1,6 +1,6 @@
 use clap::Parser;
-use std::io::Cursor;
 use serde::{Deserialize, Serialize};
+use std::io::Cursor;
 
 use receiptgo::ringgo::errors::Error;
 use receiptgo::ringgo::url_helpers;
@@ -116,7 +116,10 @@ async fn retrieve_parking_sessions(access_token: &str) -> Result<Option<ParkingS
     Ok(Some(response.json::<ParkingSessions>().await?))
 }
 
-async fn request_receipt_pdf_download(access_token: &str, parking_session_id: &str) -> Result<String, Error> {
+async fn request_receipt_pdf_download(
+    access_token: &str,
+    parking_session_id: &str,
+) -> Result<String, Error> {
     let params = DownloadRequest::new(parking_session_id.to_owned());
     let client = reqwest::Client::new();
     let response = client
@@ -131,7 +134,9 @@ async fn request_receipt_pdf_download(access_token: &str, parking_session_id: &s
 }
 
 async fn download_receipt_pdf(access_token: &str, parking_session_id: String) -> Result<(), Error> {
-    let download_token = request_receipt_pdf_download(access_token, &parking_session_id).await.unwrap();
+    let download_token = request_receipt_pdf_download(access_token, &parking_session_id)
+        .await
+        .unwrap();
     let file_name = "receipt.pdf";
     let response = reqwest::get(url_helpers::download_url(&download_token)).await?;
     let mut file = std::fs::File::create(file_name)?;
@@ -145,15 +150,17 @@ async fn download_receipt_pdf(access_token: &str, parking_session_id: String) ->
 async fn main() {
     let args = Args::parse();
 
-    let access_token =
-        get_authentication_token(args.username, args.password, args.client_secret).await.unwrap();
+    let access_token = get_authentication_token(args.username, args.password, args.client_secret)
+        .await
+        .unwrap();
 
     let parking_sessions = retrieve_parking_sessions(&access_token).await.unwrap();
 
     if let Some(ps) = parking_sessions {
         let first_parking_session = ps.sessions.into_iter().next();
 
-        let download_result = download_receipt_pdf(&access_token, first_parking_session.unwrap().auditlink).await;
+        let download_result =
+            download_receipt_pdf(&access_token, first_parking_session.unwrap().auditlink).await;
 
         if download_result.is_ok() {
             println!("Downloaded receipt");
