@@ -93,9 +93,13 @@ async fn get_authentication_token(
     client_secret: String,
 ) -> String {
     let auth_params = AuthenticationRequest::new(username, password, client_secret);
-
     let client = reqwest::Client::new();
-    let response = client.post(url_helpers::login_url()).form(&auth_params).send().await.unwrap();
+    let response = client
+        .post(url_helpers::login_url())
+        .form(&auth_params)
+        .send()
+        .await
+        .unwrap();
 
     let auth_response = response.json::<AuthResponse>().await.unwrap();
     auth_response.access_token
