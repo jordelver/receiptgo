@@ -91,7 +91,7 @@ async fn get_authentication_token(
     username: String,
     password: String,
     client_secret: String,
-) -> String {
+) -> Result<String, Error> {
     let auth_params = AuthenticationRequest::new(username, password, client_secret);
     let client = reqwest::Client::new();
     let response = client
@@ -102,7 +102,7 @@ async fn get_authentication_token(
         .unwrap();
 
     let auth_response = response.json::<AuthResponse>().await.unwrap();
-    auth_response.access_token
+    Ok(auth_response.access_token)
 }
 
 async fn retrieve_parking_sessions(access_token: &str) -> Result<Option<ParkingSessions>, Error> {
@@ -111,23 +111,9 @@ async fn retrieve_parking_sessions(access_token: &str) -> Result<Option<ParkingS
         .get(url_helpers::parking_sessions_url())
         .bearer_auth(access_token)
         .send()
-        .await
-        .unwrap();
+        .await?;
 
-    match response.status() {
-        reqwest::StatusCode::OK => {
-            match response.json::<ParkingSessions>().await {
-                Ok(parsed) => Ok(Some(parsed)),
-                Err(_) => panic!("Error parsing JSON"),
-            }
-        }
-        reqwest::StatusCode::UNAUTHORIZED => {
-            Err(Error::Unauthorized)
-        }
-        _ => {
-            Err(Error::Unknown)
-        }
-    }
+    Ok(Some(response.json::<ParkingSessions>().await?))
 }
 
 async fn request_receipt_pdf_download(access_token: &str, parking_session_id: &str) -> Result<String, Error> {
@@ -138,28 +124,13 @@ async fn request_receipt_pdf_download(access_token: &str, parking_session_id: &s
         .bearer_auth(access_token)
         .json(&params)
         .send()
-        .await
-        .unwrap();
+        .await?;
 
-     match response.status() {
-         reqwest::StatusCode::OK => {
-             match response.json::<DownloadRequestResponse>().await {
-                 Ok(parsed) => Ok(parsed.resource_access_token),
-                 Err(_) => panic!("Error parsing JSON"),
-             }
-         }
-         reqwest::StatusCode::UNAUTHORIZED => {
-             Err(Error::Unauthorized)
-         }
-         _ => {
-             Err(Error::Unknown)
-         }
-    }
+    let download_response = response.json::<DownloadRequestResponse>().await?;
+    Ok(download_response.resource_access_token)
 }
 
-type DownloadResult<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
-
-async fn download_receipt_pdf(access_token: &str, parking_session_id: String) -> DownloadResult<()> {
+async fn download_receipt_pdf(access_token: &str, parking_session_id: String) -> Result<(), Error> {
     let download_token = request_receipt_pdf_download(access_token, &parking_session_id).await.unwrap();
     let file_name = "receipt.pdf";
     let response = reqwest::get(url_helpers::download_url(&download_token)).await?;
@@ -175,7 +146,7 @@ async fn main() {
     let args = Args::parse();
 
     let access_token =
-        get_authentication_token(args.username, args.password, args.client_secret).await;
+        get_authentication_token(args.username, args.password, args.client_secret).await.unwrap();
 
     let parking_sessions = retrieve_parking_sessions(&access_token).await.unwrap();
 
