@@ -137,7 +137,7 @@ async fn download_receipt_pdf(access_token: &str, parking_session_id: String) ->
     let download_token = request_receipt_pdf_download(access_token, &parking_session_id)
         .await
         .unwrap();
-    let file_name = "receipt.pdf";
+    let file_name = format!("{id}.pdf", id = parking_session_id);
     let response = reqwest::get(url_helpers::download_url(&download_token)).await?;
     let mut file = std::fs::File::create(file_name)?;
     let mut content = Cursor::new(response.bytes().await?);
