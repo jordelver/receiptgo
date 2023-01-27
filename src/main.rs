@@ -7,6 +7,9 @@ use receiptgo::ringgo::url_helpers;
 
 static RINGGO_CLIENT_ID: &str = "ringgoios";
 
+/// Number of receipts to download
+static RECEIPTS_TO_DOWNLOAD: usize = 5;
+
 /// Download receipts from RingGo
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -30,8 +33,8 @@ struct ParkingSessions {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 struct ParkingSession {
-    #[serde(alias = "id")]
-    auditlink: String,
+    #[serde(alias = "auditlink")]
+    id: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -137,7 +140,7 @@ async fn download_receipt_pdf(access_token: &str, parking_session_id: String) ->
     let download_token = request_receipt_pdf_download(access_token, &parking_session_id)
         .await
         .unwrap();
-    let file_name = format!("{id}.pdf", id = parking_session_id);
+    let file_name = format!("{parking_session_id}.pdf");
     let response = reqwest::get(url_helpers::download_url(&download_token)).await?;
     let mut file = std::fs::File::create(file_name)?;
     let mut content = Cursor::new(response.bytes().await?);
@@ -157,15 +160,18 @@ async fn main() {
     let parking_sessions = retrieve_parking_sessions(&access_token).await.unwrap();
 
     if let Some(ps) = parking_sessions {
-        let first_parking_session = ps.sessions.into_iter().next();
+        for session in ps.sessions.into_iter().take(RECEIPTS_TO_DOWNLOAD) {
+            println!("Downloading {}", session.id);
 
-        let download_result =
-            download_receipt_pdf(&access_token, first_parking_session.unwrap().auditlink).await;
+            let download_result = download_receipt_pdf(&access_token, session.id).await;
 
-        if download_result.is_ok() {
-            println!("Downloaded receipt");
-        } else {
-            println!("Download failed");
+            if download_result.is_ok() {
+                println!("> Downloaded");
+            } else {
+                println!("> Download failed");
+            }
+
+            println!();
         }
     } else {
         println!("No parking sessions");
