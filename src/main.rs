@@ -33,8 +33,8 @@ struct ParkingSessions {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 struct ParkingSession {
-    #[serde(alias = "id")]
-    auditlink: String,
+    #[serde(alias = "auditlink")]
+    id: String,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -163,7 +163,7 @@ async fn main() {
         for session in ps.sessions.into_iter().take(RECEIPTS_TO_DOWNLOAD) {
             println!("Downloading {}", session.id);
 
-            let download_result = download_receipt_pdf(&access_token, session.auditlink).await;
+            let download_result = download_receipt_pdf(&access_token, session.id).await;
 
             if download_result.is_ok() {
                 println!("> Downloaded");
