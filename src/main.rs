@@ -33,7 +33,7 @@ struct ParkingSessions {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
 struct ParkingSession {
-    #[serde(alias = "auditlink")]
+    #[serde(alias = "Auditlink")]
     id: String,
 }
 
