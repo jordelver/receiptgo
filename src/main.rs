@@ -2,6 +2,7 @@ use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::io::Cursor;
 
+use receiptgo::cli;
 use receiptgo::ringgo::errors::Error;
 use receiptgo::ringgo::url_helpers;
 
@@ -9,20 +10,6 @@ static RINGGO_CLIENT_ID: &str = "ringgoios";
 
 /// Number of receipts to download
 static RECEIPTS_TO_DOWNLOAD: usize = 5;
-
-/// Download receipts from RingGo
-#[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None)]
-pub struct Args {
-    #[clap(short, long, env = "RINGGO_USERNAME")]
-    pub username: String,
-
-    #[clap(short, long, env = "RINGGO_PASSWORD")]
-    pub password: String,
-
-    #[clap(short, long, env = "RINGGO_CLIENT_SECRET")]
-    pub client_secret: String,
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -151,7 +138,7 @@ async fn download_receipt_pdf(access_token: &str, parking_session_id: String) ->
 
 #[tokio::main]
 async fn main() {
-    let args = Args::parse();
+    let args = cli::Args::parse();
 
     let access_token = get_authentication_token(args.username, args.password, args.client_secret)
         .await
