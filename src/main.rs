@@ -5,23 +5,11 @@ use std::io::Cursor;
 use receiptgo::cli;
 use receiptgo::ringgo::authentication;
 use receiptgo::ringgo::errors::Error;
+use receiptgo::ringgo::parking_sessions;
 use receiptgo::ringgo::url_helpers;
 
 /// Number of receipts to download
 static RECEIPTS_TO_DOWNLOAD: usize = 5;
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "PascalCase")]
-struct ParkingSessions {
-    sessions: Vec<ParkingSession>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "PascalCase")]
-struct ParkingSession {
-    #[serde(alias = "Auditlink")]
-    id: String,
-}
 
 #[derive(Default, Serialize, Debug)]
 #[serde(rename_all = "PascalCase")]
@@ -45,17 +33,6 @@ struct DownloadRequestResponse {
     resource_access_token: String,
     return_code: u8,
     success: bool,
-}
-
-async fn retrieve_parking_sessions(access_token: &str) -> Result<Option<ParkingSessions>, Error> {
-    let client = reqwest::Client::new();
-    let response = client
-        .get(url_helpers::parking_sessions_url())
-        .bearer_auth(access_token)
-        .send()
-        .await?;
-
-    Ok(Some(response.json::<ParkingSessions>().await?))
 }
 
 async fn request_receipt_pdf_download(
@@ -96,7 +73,7 @@ async fn main() {
         .await
         .unwrap();
 
-    let parking_sessions = retrieve_parking_sessions(&access_token).await.unwrap();
+    let parking_sessions = parking_sessions::retrieve_parking_sessions(&access_token).await.unwrap();
 
     if let Some(ps) = parking_sessions {
         for session in ps.sessions.into_iter().take(RECEIPTS_TO_DOWNLOAD) {
