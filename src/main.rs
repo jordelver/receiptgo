@@ -92,7 +92,7 @@ async fn download_receipt_pdf(access_token: &str, parking_session_id: String) ->
 async fn main() {
     let args = cli::Args::parse();
 
-    let access_token = authentication::get_authentication_token(args.username, args.password, args.client_secret)
+    let access_token = authentication::get_token(args.username, args.password, args.client_secret)
         .await
         .unwrap();
 

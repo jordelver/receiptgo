@@ -33,7 +33,7 @@ struct AuthResponse {
     refresh_token: String,
 }
 
-pub async fn get_authentication_token(
+pub async fn get_token(
     username: String,
     password: String,
     client_secret: String,
