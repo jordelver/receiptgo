@@ -26,7 +26,7 @@ impl AuthenticationRequest {
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-struct AuthResponse {
+struct AuthenticationResponse {
     access_token: String,
     token_type: String,
     expires_in: i32,
@@ -47,6 +47,6 @@ pub async fn get_token(
         .await
         .unwrap();
 
-    let auth_response = response.json::<AuthResponse>().await.unwrap();
+    let auth_response = response.json::<AuthenticationResponse>().await.unwrap();
     Ok(auth_response.access_token)
 }
