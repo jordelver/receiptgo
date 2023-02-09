@@ -3,10 +3,9 @@ use serde::{Deserialize, Serialize};
 use std::io::Cursor;
 
 use receiptgo::cli;
+use receiptgo::ringgo::authentication;
 use receiptgo::ringgo::errors::Error;
 use receiptgo::ringgo::url_helpers;
-
-static RINGGO_CLIENT_ID: &str = "ringgoios";
 
 /// Number of receipts to download
 static RECEIPTS_TO_DOWNLOAD: usize = 5;
@@ -22,35 +21,6 @@ struct ParkingSessions {
 struct ParkingSession {
     #[serde(alias = "Auditlink")]
     id: String,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-struct AuthResponse {
-    access_token: String,
-    token_type: String,
-    expires_in: i32,
-    refresh_token: String,
-}
-
-#[derive(Default, Serialize, Debug)]
-struct AuthenticationRequest {
-    client_id: String,
-    client_secret: String,
-    grant_type: String,
-    password: String,
-    username: String,
-}
-
-impl AuthenticationRequest {
-    pub fn new(username: String, password: String, client_secret: String) -> Self {
-        Self {
-            client_id: RINGGO_CLIENT_ID.to_string(),
-            client_secret,
-            grant_type: String::from("password"),
-            username,
-            password,
-        }
-    }
 }
 
 #[derive(Default, Serialize, Debug)]
@@ -75,24 +45,6 @@ struct DownloadRequestResponse {
     resource_access_token: String,
     return_code: u8,
     success: bool,
-}
-
-async fn get_authentication_token(
-    username: String,
-    password: String,
-    client_secret: String,
-) -> Result<String, Error> {
-    let auth_params = AuthenticationRequest::new(username, password, client_secret);
-    let client = reqwest::Client::new();
-    let response = client
-        .post(url_helpers::login_url())
-        .form(&auth_params)
-        .send()
-        .await
-        .unwrap();
-
-    let auth_response = response.json::<AuthResponse>().await.unwrap();
-    Ok(auth_response.access_token)
 }
 
 async fn retrieve_parking_sessions(access_token: &str) -> Result<Option<ParkingSessions>, Error> {
@@ -140,7 +92,7 @@ async fn download_receipt_pdf(access_token: &str, parking_session_id: String) ->
 async fn main() {
     let args = cli::Args::parse();
 
-    let access_token = get_authentication_token(args.username, args.password, args.client_secret)
+    let access_token = authentication::get_authentication_token(args.username, args.password, args.client_secret)
         .await
         .unwrap();
 
