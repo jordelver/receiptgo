@@ -1,9 +1,7 @@
 use clap::Parser;
 
 use receiptgo::cli;
-use receiptgo::ringgo::authentication;
-use receiptgo::ringgo::downloads;
-use receiptgo::ringgo::parking_sessions;
+use receiptgo::ringgo::{authentication, downloads, parking_sessions};
 
 /// Number of receipts to download
 static RECEIPTS_TO_DOWNLOAD: usize = 5;
