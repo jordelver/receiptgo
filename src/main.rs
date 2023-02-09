@@ -14,7 +14,9 @@ async fn main() {
         .await
         .unwrap();
 
-    let parking_sessions = parking_sessions::retrieve_parking_sessions(&access_token).await.unwrap();
+    let parking_sessions = parking_sessions::retrieve_parking_sessions(&access_token)
+        .await
+        .unwrap();
 
     if let Some(ps) = parking_sessions {
         for session in ps.sessions.into_iter().take(RECEIPTS_TO_DOWNLOAD) {

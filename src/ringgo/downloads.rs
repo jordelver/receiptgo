@@ -44,7 +44,10 @@ async fn request_receipt_pdf_download(
     Ok(download_response.resource_access_token)
 }
 
-pub async fn download_receipt_pdf(access_token: &str, parking_session_id: String) -> Result<(), Error> {
+pub async fn download_receipt_pdf(
+    access_token: &str,
+    parking_session_id: String,
+) -> Result<(), Error> {
     let download_token = request_receipt_pdf_download(access_token, &parking_session_id)
         .await
         .unwrap();

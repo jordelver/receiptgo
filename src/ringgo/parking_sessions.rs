@@ -15,7 +15,9 @@ pub struct ParkingSession {
     pub id: String,
 }
 
-pub async fn retrieve_parking_sessions(access_token: &str) -> Result<Option<ParkingSessions>, Error> {
+pub async fn retrieve_parking_sessions(
+    access_token: &str,
+) -> Result<Option<ParkingSessions>, Error> {
     let client = reqwest::Client::new();
     let response = client
         .get(url_helpers::parking_sessions_url())
